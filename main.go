@@ -25,19 +25,46 @@ type MakeCert struct {
 }
 
 var (
-	addrFlag = ":8080"
-	certDir  = "./certs"
+	addrFlag  = ":8080"
+	certDir   = "./certs"
+	mkcertBin = "./mkcert"
+	carootDir = "./ca"
 )
 
 func main() {
 	flag.StringVar(&addrFlag, "addr", ":8080", "server address")
 	flag.StringVar(&certDir, "dir", certDir, "certs dir")
+	flag.StringVar(&mkcertBin, "mkcert", mkcertBin, "mkcert path")
+	flag.StringVar(&carootDir, "caroot", carootDir, "ca dir")
 	flag.Parse()
+
+	var err error
+
+	// 获取绝对路径
+	certDir, err = filepath.Abs(certDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mkcertBin, err = filepath.Abs(mkcertBin)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	carootDir, err = filepath.Abs(carootDir)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if err := workDir(certDir); err != nil {
 		log.Fatal(err)
 	}
 
+	if err = initRootCA(); err != nil {
+		log.Fatal(err)
+	}
+
+	// 初始化 gin
 	router := gin.Default()
 
 	// 提取 static 文件
@@ -54,6 +81,16 @@ func main() {
 			return
 		}
 		c.Data(http.StatusOK, "text/html; charset=utf-8", content)
+	})
+
+	// /mycertCA.pem 路由到 /ca/rootCA.pem
+	router.GET("/mycertCA.pem", func(c *gin.Context) {
+		c.File(filepath.Join(carootDir, "rootCA.pem"))
+	})
+
+	// /mycertCA.crt 路由到 /ca/rootCA.pem
+	router.GET("/mycertCA.crt", func(c *gin.Context) {
+		c.File(filepath.Join(carootDir, "rootCA.pem"))
 	})
 
 	router.POST("/api/make", handleMakeCert)
@@ -78,8 +115,9 @@ func handleMakeCert(c *gin.Context) {
 
 	args := append([]string{"--cert-file", certFile, "--key-file", keyFile}, req.Domains...)
 
-	cmd := exec.Command("mkcert", args...)
+	cmd := exec.Command(mkcertBin, args...)
 	cmd.Dir = certDir
+	cmd.Env = []string{"CAROOT=" + carootDir}
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -134,4 +172,24 @@ func workDir(path string) (err error) {
 	// 不存在，则创建
 	err = os.MkdirAll(path, os.ModePerm)
 	return
+}
+
+// 判断根证书是否存在
+func rootCAExists() bool {
+	_, err := os.Stat(filepath.Join(carootDir, "rootCA.pem"))
+	return err == nil
+}
+
+// 初始化根证书
+func initRootCA() error {
+	if rootCAExists() {
+		return nil
+	}
+
+	cmd := exec.Command(mkcertBin, "-install")
+	cmd.Dir = certDir
+	cmd.Env = append(os.Environ(), "CAROOT="+carootDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
