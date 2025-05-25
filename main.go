@@ -84,6 +84,11 @@ func main() {
 	})
 
 	// /mycertCA.pem 路由到 /ca/rootCA.pem
+	router.GET("/mycertCA-key.pem", func(c *gin.Context) {
+		c.File(filepath.Join(carootDir, "rootCA-key.pem"))
+	})
+
+	// /mycertCA.pem 路由到 /ca/rootCA.pem
 	router.GET("/mycertCA.pem", func(c *gin.Context) {
 		c.File(filepath.Join(carootDir, "rootCA.pem"))
 	})

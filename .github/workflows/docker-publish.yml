@@ -31,8 +31,7 @@ jobs:
         with:
           context: .
           push: true
-          # tags: ghcr.io/${{ github.repository }}:latest
-          tags: ghcr.io/taodev/mycert:latest
+          tags: ghcr.io/${{ github.repository }}:latest
           # 自动创建仓库路径 ghcr.io/taodev/mycert:latest
 
       - name: Show Image Info
