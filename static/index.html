@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HTTPS 自签证书</title>
+    <link rel="icon" type="image/png" href="./static/favicon.png" />
+    <script defer src="./static/tailwindcss4.min.js"></script>
+    <script defer src="./static/alpine3.min.js"></script>
+  </head>
+  <body
+    class="bg-gray-50 min-h-screen text-gray-800 flex flex-col"
+    x-data="certApp()"
+  >
+    <!-- Header -->
+    <header class="bg-white shadow">
+      <div class="container mx-auto px-6 py-4 flex items-center space-x-4">
+        <img src="./static/favicon.png" alt="Logo" class="h-10 w-10" />
+        <h1 class="text-2xl font-bold">HTTPS 自签证书</h1>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8 flex-1">
+      <!-- 安装根证书部分 -->
+      <div class="bg-white shadow rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">安装根证书</h2>
+        <div class="space-x-4">
+          <a
+            href="https://raw.githubusercontent.com/taodev/mycert/main/mycertCA.pem"
+            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+            download
+          >
+            下载 mycertCA.pem
+          </a>
+          <a
+            href="https://raw.githubusercontent.com/taodev/mycert/main/mycertCA.crt"
+            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+            download
+          >
+            下载 mycertCA.crt
+          </a>
+        </div>
+
+        <!-- iOS 提示 -->
+        <div class="mt-6 text-gray-700 leading-relaxed space-y-3">
+          <h3 class="text-lg font-semibold">iOS 使用注意事项：</h3>
+          <p>
+            在 iOS 中，尽管你已经安装了自签的 CA 证书
+            <code>mycertCA.pem</code>，浏览器仍然提示
+            <code>ERR_SSL_PROTOCOL_ERROR</code> 可能是由于以下几个原因：
+          </p>
+          <ul class="list-disc pl-5 space-y-2">
+            <li>
+              <strong>证书没有完全信任：</strong> 安装后需手动设置为“完全信任”。
+              <br />
+              路径：<em>设置 &gt; 通用 &gt; 关于本机 &gt; 证书信任设置</em>。
+            </li>
+            <li><strong>证书链不完整：</strong> 服务器应提供完整证书链。</li>
+            <li>
+              <strong>证书匹配错误：</strong> 确保使用与你的 CA
+              证书对应的服务端证书。
+            </li>
+            <li><strong>过期或无效证书：</strong> 检查有效期和签发配置。</li>
+            <li>
+              <strong>TLS 配置问题：</strong> 推荐使用 TLS 1.2 或 TLS 1.3。
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 生成证书部分 -->
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">生成 HTTPS 证书</h2>
+        <textarea
+          x-model="domains"
+          class="w-full h-32 p-3 border rounded resize-none mb-4"
+          placeholder="输入多个域名，一行一个"
+        ></textarea>
+
+        <button
+          @click="makeCert"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+        >
+          生成证书
+        </button>
+
+        <template x-if="cert">
+          <div class="mt-6">
+            <h3 class="text-lg font-semibold mb-2">证书</h3>
+            <textarea
+              readonly
+              class="w-full h-40 p-2 border rounded resize-none"
+              x-text="cert"
+            ></textarea>
+            <button
+              @click="copyToClipboard(cert)"
+              class="mt-2 bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-800 transition"
+            >
+              复制证书
+            </button>
+          </div>
+        </template>
+
+        <template x-if="key">
+          <div class="mt-6">
+            <h3 class="text-lg font-semibold mb-2">私钥</h3>
+            <textarea
+              readonly
+              class="w-full h-40 p-2 border rounded resize-none"
+              x-text="key"
+            ></textarea>
+            <button
+              @click="copyToClipboard(key)"
+              class="mt-2 bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-800 transition"
+            >
+              复制私钥
+            </button>
+          </div>
+        </template>
+
+        <template x-if="error">
+          <div
+            class="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded"
+          >
+            <strong>错误：</strong> <span x-text="error"></span>
+          </div>
+        </template>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-10">
+      <div class="border-t pt-4 pb-6 bg-gray-50">
+        <p class="text-center text-sm text-gray-500">
+          © 2025
+          <a
+            href="https://github.com/taodev/mycert"
+            target="_blank"
+            class="text-blue-600 hover:text-blue-800 hover:underline transition"
+          >
+            github.com/taodev/mycert
+          </a>
+        </p>
+      </div>
+    </footer>
+
+    <!-- Alpine.js Script -->
+    <script>
+      function certApp() {
+        return {
+          domains: "",
+          cert: "",
+          key: "",
+          error: "",
+          async makeCert() {
+            const domainsText = this.domains;
+            const domains = domainsText
+              .split("\n")
+              .map((s) => s.trim())
+              .filter(Boolean);
+
+            if (domains.length === 0) {
+              this.showError("请输入至少一个域名，IP 或邮箱");
+              return;
+            }
+
+            const res = await fetch("./api/make", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ domains }),
+            });
+            const data = await res.json();
+            this.error = data.error || "";
+            this.cert = data.cert || "";
+            this.key = data.key || "";
+          },
+          copyToClipboard(text) {
+            if (
+              navigator.clipboard &&
+              navigator.clipboard.writeText &&
+              text !== ""
+            ) {
+              navigator.clipboard
+                .writeText(text)
+                .then(() => alert("已复制到剪切板"))
+                .catch(() => alert("复制失败"));
+            }
+          },
+          showError(err) {
+            this.error = err;
+            this.cert = "";
+            this.key = "";
+          },
+        };
+      }
+    </script>
+  </body>
+</html>
