@@ -25,7 +25,7 @@ type MakeCert struct {
 }
 
 var (
-	addrFlag  = ":8080"
+	addrFlag  = ":80"
 	certDir   = "./certs"
 	mkcertBin = "./mkcert"
 	carootDir = "./ca"

@@ -33,7 +33,7 @@ COPY ./mkcert /app/mkcert
 RUN chmod +x /app/mycert && chmod +x /app/mkcert && mkdir -p /mycert
 
 # 设置默认环境变量（可被 docker-compose.yml 覆盖）
-ENV ADDR=0.0.0.0:8080
+ENV ADDR=0.0.0.0:80
 ENV CERT_DIR=/mycert/certs
 ENV CAROOT=/mycert/ca
 

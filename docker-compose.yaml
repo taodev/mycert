@@ -5,8 +5,8 @@ services:
     build: .
     hostname: mydev
     environment:
-      - ADDR=0.0.0.0:8443
+      - ADDR=0.0.0.0:80
       - CERT_DIR=/mycert/certs
       - CAROOT=/mycert/ca
     ports:
-      - "8443:8443"
+      - "8080:80"
