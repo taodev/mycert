@@ -27,18 +27,20 @@
         <h2 class="text-xl font-semibold mb-4">安装根证书</h2>
         <div class="space-x-4">
           <a
-            href="https://raw.githubusercontent.com/taodev/mycert/main/mycertCA.pem"
+            href="https://raw.githubusercontent.com/taodev/mycert/main/mkcert/mycertCA.pem"
             class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-            download
+						target="_blank"
+            download="mycertCA.pem"
           >
-            下载 mycertCA.pem
+            PEM 格式
           </a>
           <a
-            href="https://raw.githubusercontent.com/taodev/mycert/main/mycertCA.crt"
+            href="https://raw.githubusercontent.com/taodev/mycert/main/mkcert/mycertCA.crt"
             class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-            download
+						target="_blank"
+            download="mycertCA.crt"
           >
-            下载 mycertCA.crt
+            CRT 格式
           </a>
         </div>
 
@@ -47,10 +49,19 @@
           <h3 class="text-lg font-semibold">iOS 使用注意事项：</h3>
           <p>
             在 iOS 中，尽管你已经安装了自签的 CA 证书
-            <code>mycertCA.pem</code>，浏览器仍然提示
+            <code>mycertCA.crt</code>，浏览器仍然提示
             <code>ERR_SSL_PROTOCOL_ERROR</code> 可能是由于以下几个原因：
           </p>
           <ul class="list-disc pl-5 space-y-2">
+						<li>
+              <strong>证书安装：</strong> 安装需使用 <em>Safari</em> 浏览器打开本页面下载 <em>CRT 格式</em> 才能识别证书
+              <br />
+							路径：
+							<br />
+							<em>设置 &gt; 通用 &gt; VPN 与设备管理 &gt; mkcert root@dev001 &gt; 点击安装</em>。
+							<br />
+              <em>设置 &gt; 通用 &gt; 关于本机 &gt; 证书信任设置 &gt; 点击信任</em>。
+            </li>
             <li>
               <strong>证书没有完全信任：</strong> 安装后需手动设置为“完全信任”。
               <br />
