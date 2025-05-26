@@ -30,11 +30,11 @@ type MakeCert struct {
 
 var (
 	// 监听地址
-	addrFlag = ":80"
+	address = ":8080"
 	// 管理密钥
 	tokenKey = "mycert"
-	// 证书目录
-	certDir = "./certs"
+	// 临时目录
+	tempDir = "./temp"
 	// mkcert 路径
 	mkcertBin = "./mkcert"
 	// 根证书目录
@@ -43,11 +43,28 @@ var (
 	titleName = "HTTPS 自签证书"
 )
 
+func getEnvOrDefault(envKey, fallback string) string {
+	if val := os.Getenv(envKey); val != "" {
+		return val
+	}
+
+	return fallback
+}
+
 // 初始化命令行
 func initFlags() {
-	flag.StringVar(&addrFlag, "addr", addrFlag, "server address")
+	// 从环境变量中获取
+	address = getEnvOrDefault("ADDR", address)
+	tokenKey = getEnvOrDefault("TOKEN", tokenKey)
+	tempDir = getEnvOrDefault("TEMP_DIR", tempDir)
+	mkcertBin = getEnvOrDefault("MKCERT", mkcertBin)
+	carootDir = getEnvOrDefault("CAROOT", carootDir)
+	titleName = getEnvOrDefault("TITLE", titleName)
+
+	// 从命令行中获取
+	flag.StringVar(&address, "addr", address, "server address")
 	flag.StringVar(&tokenKey, "token", tokenKey, "token key")
-	flag.StringVar(&certDir, "dir", certDir, "certs dir")
+	flag.StringVar(&tempDir, "temp-dir", tempDir, "temp dir")
 	flag.StringVar(&mkcertBin, "mkcert", mkcertBin, "mkcert path")
 	flag.StringVar(&carootDir, "caroot", carootDir, "ca dir")
 	flag.StringVar(&titleName, "title", titleName, "site name")
@@ -57,7 +74,7 @@ func initFlags() {
 // 获取完整路径
 func initPath() (err error) {
 	// 获取绝对路径
-	if certDir, err = filepath.Abs(certDir); err != nil {
+	if tempDir, err = filepath.Abs(tempDir); err != nil {
 		return
 	}
 
@@ -69,7 +86,11 @@ func initPath() (err error) {
 		return
 	}
 
-	if err = workDir(certDir); err != nil {
+	if err = workDir(tempDir); err != nil {
+		return
+	}
+
+	if err = workDir(carootDir); err != nil {
 		return
 	}
 
@@ -91,6 +112,8 @@ func main() {
 	// 初始化 gin
 	router := gin.Default()
 
+	// 开启 gzip
+
 	// 从嵌入的文件系统中加载模板
 	subFS, err := fs.Sub(templateFiles, "static")
 	if err != nil {
@@ -111,13 +134,6 @@ func main() {
 
 	router.StaticFS("/static", http.FS(staticFS))
 	router.GET("/", func(c *gin.Context) {
-		// content, err := staticFiles.ReadFile("static/index.html")
-		// if err != nil {
-		// 	c.String(http.StatusInternalServerError, "Failed to load index.html")
-		// 	return
-		// }
-
-		// c.Data(http.StatusOK, "text/html; charset=utf-8", content)
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"Title": titleName,
 		})
@@ -146,7 +162,7 @@ func main() {
 
 	router.POST("/api/make", handleMakeCert)
 
-	if err := router.Run(addrFlag); err != nil {
+	if err := router.Run(address); err != nil {
 		log.Fatal("router.Run:", err)
 	}
 }
@@ -167,7 +183,7 @@ func handleMakeCert(c *gin.Context) {
 	args := append([]string{"--cert-file", certFile, "--key-file", keyFile}, req.Domains...)
 
 	cmd := exec.Command(mkcertBin, args...)
-	cmd.Dir = certDir
+	cmd.Dir = tempDir
 	cmd.Env = []string{"CAROOT=" + carootDir}
 
 	var out bytes.Buffer
@@ -238,7 +254,7 @@ func initRootCA() error {
 	}
 
 	cmd := exec.Command(mkcertBin, "-install")
-	cmd.Dir = certDir
+	cmd.Dir = tempDir
 	cmd.Env = append(os.Environ(), "CAROOT="+carootDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

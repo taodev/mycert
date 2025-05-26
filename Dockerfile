@@ -32,8 +32,4 @@ COPY ./mkcert /app/mkcert
 # 授权执行权限（可选）
 RUN chmod +x /app/mycert && chmod +x /app/mkcert && mkdir -p /mycert
 
-# 设置默认环境变量（可被 docker-compose.yml 覆盖）
-ENV ADDR="0.0.0.0:80" CERT_DIR="/mycert/certs" CAROOT="/mycert/ca" TOKEN="mycert" TITLE_NAME="HTTPS 自签证书"
-
-# 使用 shell 模式运行 mycert，并使用环境变量传参
-ENTRYPOINT ["/bin/sh", "-c", '/app/mycert --addr="$ADDR" --caroot="$CAROOT" --dir="$CERT_DIR" --token="$TOKEN" --title="$TITLE_NAME"']
+ENTRYPOINT ["/app/mycert"]

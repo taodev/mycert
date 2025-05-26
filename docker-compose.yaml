@@ -1,10 +1,11 @@
 services:
   mycert:
-    build: .
     hostname: mydev
     environment:
-      - ADDR=0.0.0.0:80
-      - CERT_DIR=/mycert/certs
+      - ADDR=0.0.0.0:8080
+      - TOKEN=1d1314
+      - TEMP_DIR=/mycert/temp
       - CAROOT=/mycert/ca
+      - TITLE="HTTPS 自签证书"
     ports:
-      - "8080:80"
+      - "8080:8080"
