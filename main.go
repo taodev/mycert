@@ -6,6 +6,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"flag"
+	"html/template"
 	"io/fs"
 	"log"
 	"net/http"
@@ -19,6 +20,9 @@ import (
 
 //go:embed static/*
 var staticFiles embed.FS
+
+//go:embed static/*.html
+var templateFiles embed.FS
 
 type MakeCert struct {
 	Domains []string `json:"domains"`
@@ -35,6 +39,8 @@ var (
 	mkcertBin = "./mkcert"
 	// 根证书目录
 	carootDir = "./ca"
+	// 网站名称
+	titleName = "HTTPS 自签证书"
 )
 
 // 初始化命令行
@@ -44,6 +50,7 @@ func initFlags() {
 	flag.StringVar(&certDir, "dir", certDir, "certs dir")
 	flag.StringVar(&mkcertBin, "mkcert", mkcertBin, "mkcert path")
 	flag.StringVar(&carootDir, "caroot", carootDir, "ca dir")
+	flag.StringVar(&titleName, "title", titleName, "site name")
 	flag.Parse()
 }
 
@@ -84,6 +91,18 @@ func main() {
 	// 初始化 gin
 	router := gin.Default()
 
+	// 从嵌入的文件系统中加载模板
+	subFS, err := fs.Sub(templateFiles, "static")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 解析模板文件
+	templ := template.Must(template.New("").ParseFS(subFS, "*.html"))
+
+	// 设置模板到 Gin 引擎
+	router.SetHTMLTemplate(templ)
+
 	// 提取 static 文件
 	staticFS, err := fs.Sub(staticFiles, "static")
 	if err != nil {
@@ -92,12 +111,16 @@ func main() {
 
 	router.StaticFS("/static", http.FS(staticFS))
 	router.GET("/", func(c *gin.Context) {
-		content, err := staticFiles.ReadFile("static/index.html")
-		if err != nil {
-			c.String(http.StatusInternalServerError, "Failed to load index.html")
-			return
-		}
-		c.Data(http.StatusOK, "text/html; charset=utf-8", content)
+		// content, err := staticFiles.ReadFile("static/index.html")
+		// if err != nil {
+		// 	c.String(http.StatusInternalServerError, "Failed to load index.html")
+		// 	return
+		// }
+
+		// c.Data(http.StatusOK, "text/html; charset=utf-8", content)
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"Title": titleName,
+		})
 	})
 
 	// /mycertCA.pem 路由到 /ca/rootCA.pem
