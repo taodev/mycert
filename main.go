@@ -142,7 +142,7 @@ func main() {
 	// /mycertCA.pem 路由到 /ca/rootCA.pem
 	router.GET("/mycertCA-key.pem", func(c *gin.Context) {
 		// 验证密钥
-		if c.Query("key") != tokenKey {
+		if c.Query("token") != tokenKey {
 			c.String(http.StatusUnauthorized, "Unauthorized")
 			return
 		}
