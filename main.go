@@ -25,43 +25,60 @@ type MakeCert struct {
 }
 
 var (
-	addrFlag  = ":80"
-	certDir   = "./certs"
+	// 监听地址
+	addrFlag = ":80"
+	// 管理密钥
+	adminKey = "admin"
+	// 证书目录
+	certDir = "./certs"
+	// mkcert 路径
 	mkcertBin = "./mkcert"
+	// 根证书目录
 	carootDir = "./ca"
 )
 
-func main() {
-	flag.StringVar(&addrFlag, "addr", ":8080", "server address")
+// 初始化命令行
+func initFlags() {
+	flag.StringVar(&addrFlag, "addr", addrFlag, "server address")
+	flag.StringVar(&adminKey, "key", adminKey, "admin key")
 	flag.StringVar(&certDir, "dir", certDir, "certs dir")
 	flag.StringVar(&mkcertBin, "mkcert", mkcertBin, "mkcert path")
 	flag.StringVar(&carootDir, "caroot", carootDir, "ca dir")
 	flag.Parse()
+}
+
+// 获取完整路径
+func initPath() (err error) {
+	// 获取绝对路径
+	if certDir, err = filepath.Abs(certDir); err != nil {
+		return
+	}
+
+	if mkcertBin, err = filepath.Abs(mkcertBin); err != nil {
+		return
+	}
+
+	if carootDir, err = filepath.Abs(carootDir); err != nil {
+		return
+	}
+
+	if err = workDir(certDir); err != nil {
+		return
+	}
+
+	return
+}
+
+func main() {
+	initFlags()
 
 	var err error
-
-	// 获取绝对路径
-	certDir, err = filepath.Abs(certDir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	mkcertBin, err = filepath.Abs(mkcertBin)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	carootDir, err = filepath.Abs(carootDir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := workDir(certDir); err != nil {
-		log.Fatal(err)
+	if err = initPath(); err != nil {
+		log.Fatal("initPath:", err)
 	}
 
 	if err = initRootCA(); err != nil {
-		log.Fatal(err)
+		log.Fatal("initRootCA:", err)
 	}
 
 	// 初始化 gin
@@ -85,23 +102,29 @@ func main() {
 
 	// /mycertCA.pem 路由到 /ca/rootCA.pem
 	router.GET("/mycertCA-key.pem", func(c *gin.Context) {
-		c.File(filepath.Join(carootDir, "rootCA-key.pem"))
+		// 验证密钥
+		if c.Query("key") != adminKey {
+			c.String(http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+
+		c.FileAttachment(filepath.Join(carootDir, "rootCA-key.pem"), "mycertCA-key.pem")
 	})
 
 	// /mycertCA.pem 路由到 /ca/rootCA.pem
 	router.GET("/mycertCA.pem", func(c *gin.Context) {
-		c.File(filepath.Join(carootDir, "rootCA.pem"))
+		c.FileAttachment(filepath.Join(carootDir, "rootCA.pem"), "mycertCA.pem")
 	})
 
 	// /mycertCA.crt 路由到 /ca/rootCA.pem
 	router.GET("/mycertCA.crt", func(c *gin.Context) {
-		c.File(filepath.Join(carootDir, "rootCA.pem"))
+		c.FileAttachment(filepath.Join(carootDir, "rootCA.pem"), "mycertCA.crt")
 	})
 
 	router.POST("/api/make", handleMakeCert)
 
 	if err := router.Run(addrFlag); err != nil {
-		log.Fatal(err)
+		log.Fatal("router.Run:", err)
 	}
 }
 
