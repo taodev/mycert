@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 )
 
@@ -113,6 +114,7 @@ func main() {
 	router := gin.Default()
 
 	// 开启 gzip
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
 
 	// 从嵌入的文件系统中加载模板
 	subFS, err := fs.Sub(templateFiles, "static")

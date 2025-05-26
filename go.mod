@@ -2,7 +2,10 @@ module github.com/taodev/mycert
 
 go 1.24.3
 
-require github.com/gin-gonic/gin v1.10.1
+require (
+	github.com/gin-contrib/gzip v1.2.3
+	github.com/gin-gonic/gin v1.10.1
+)
 
 require (
 	github.com/bytedance/sonic v1.13.2 // indirect
