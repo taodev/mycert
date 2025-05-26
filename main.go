@@ -32,7 +32,7 @@ var (
 	// 监听地址
 	addrFlag = ":80"
 	// 管理密钥
-	adminKey = "admin"
+	tokenKey = "mycert"
 	// 证书目录
 	certDir = "./certs"
 	// mkcert 路径
@@ -46,7 +46,7 @@ var (
 // 初始化命令行
 func initFlags() {
 	flag.StringVar(&addrFlag, "addr", addrFlag, "server address")
-	flag.StringVar(&adminKey, "key", adminKey, "admin key")
+	flag.StringVar(&tokenKey, "token", tokenKey, "token key")
 	flag.StringVar(&certDir, "dir", certDir, "certs dir")
 	flag.StringVar(&mkcertBin, "mkcert", mkcertBin, "mkcert path")
 	flag.StringVar(&carootDir, "caroot", carootDir, "ca dir")
@@ -126,7 +126,7 @@ func main() {
 	// /mycertCA.pem 路由到 /ca/rootCA.pem
 	router.GET("/mycertCA-key.pem", func(c *gin.Context) {
 		// 验证密钥
-		if c.Query("key") != adminKey {
+		if c.Query("key") != tokenKey {
 			c.String(http.StatusUnauthorized, "Unauthorized")
 			return
 		}
