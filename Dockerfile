@@ -24,12 +24,12 @@ RUN apk add --no-cache ca-certificates
 WORKDIR /app
 
 # 从构建阶段复制可执行文件
-COPY --from=builder /build/mycert /app/mycert
+COPY --from=builder /build/mycert /usr/local/bin/mycert
 
 # 复制 mkcert
-COPY ./mkcert /app/mkcert
+COPY ./mkcert /usr/local/bin/mkcert
 
 # 授权执行权限（可选）
-RUN chmod +x /app/mycert && chmod +x /app/mkcert && mkdir -p /mycert
+RUN chmod +x /usr/local/bin/mycert && chmod +x /usr/local/bin/mkcert
 
-ENTRYPOINT ["/app/mycert"]
+ENTRYPOINT ["/usr/local/bin/mycert"]

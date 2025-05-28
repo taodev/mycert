@@ -4,8 +4,8 @@ services:
     environment:
       - ADDR=0.0.0.0:8080
       - TOKEN=1d1314
-      - TEMP_DIR=/mycert/temp
-      - CAROOT=/mycert/ca
+      - TEMP_DIR=/var/lib/mycert
+      - CAROOT=/etc/mycert
       - TITLE="HTTPS 自签证书"
     ports:
       - "8080:8080"
